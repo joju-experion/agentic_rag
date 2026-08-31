@@ -11,7 +11,7 @@ web_search_tool = TavilySearch(max_results=3)
 
 
 def web_search(state: GraphState) -> Dict[str, Any]:
-    workflow_log("---WEB SEARCH---")
+    workflow_log("Searching for additional context", component="WEB_SEARCH")
     question = state["question"]
     if "documents" in state: # if the route to web search in first time then give error
         documents = state["documents"]

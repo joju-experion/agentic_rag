@@ -13,19 +13,24 @@ load_dotenv()
 
 
 def decide_to_generate(state):
-    workflow_log("---ASSESS GRADED DOCUMENTS---")
+    workflow_log("Assessing retrieved context", component="DECISION")
 
     if state["web_search"]:
         workflow_log(
-            "---DECISION: NOT ALL DOCUMENTS ARE NOT RELEVANT TO QUESTION, INCLUDE WEB SEARCH---"
+            "Some documents were not relevant; adding web search context",
+            component="DECISION",
+            level="WARN",
         )
         return WEBSEARCH
     else:
-        workflow_log("---DECISION: GENERATE---")
+        workflow_log(
+            "Relevant context is available; generating an answer",
+            component="DECISION",
+        )
         return GENERATE
 
 def grade_generation_grounded_in_documents_and_question(state: GraphState) -> str:
-    workflow_log("---CHECK HALLUCINATIONS---")
+    workflow_log("Checking answer grounding", component="VALIDATION")
     question = state["question"]
     documents = state["documents"]
     generation = state["generation"]
@@ -33,27 +38,46 @@ def grade_generation_grounded_in_documents_and_question(state: GraphState) -> st
     score = hallucination_grader.invoke({"documents": documents, "generation": generation})
     
     if hallucination_grade := score.binary_score:
-        workflow_log("---DECISION: GENERATION IS GROUNDED IN DOCUMENTS---")
-        workflow_log("---GRADE GENERATION vs QUESTION---")
+        workflow_log(
+            "Answer is grounded in the retrieved context",
+            component="VALIDATION",
+        )
+        workflow_log(
+            "Checking whether the answer addresses the question",
+            component="VALIDATION",
+        )
         
         score = answer_grader.invoke({"question": question, "generation": generation})
         if answer_grade := score.binary_score:
-            workflow_log("---DECISION: GENERATION ADDRESSES QUESTION---")
+            workflow_log(
+                "Answer addresses the question",
+                component="VALIDATION",
+            )
             return "useful"
         else:
+            workflow_log(
+                "Answer does not fully address the question; using web search",
+                component="VALIDATION",
+                level="WARN",
+            )
             return "not useful"
     else:
+        workflow_log(
+            "Answer is not grounded in the context; regenerating",
+            component="VALIDATION",
+            level="WARN",
+        )
         return "not supported"
     
 def route_question(state: GraphState) -> str:
-    workflow_log("---ROUTE QUESTION---")
+    workflow_log("Evaluating the question", component="ROUTER")
     question = state["question"]
     source: RouteQuery = question_router.invoke({"question": question})
     if source.datasource == WEBSEARCH:
-        workflow_log("---ROUTE QUESTION TO WEB SEARCH---")
+        workflow_log("Selected web search", component="ROUTER")
         return WEBSEARCH
     elif source.datasource == "vectorstore":
-        workflow_log("---ROUTE QUESTION TO RAG---")
+        workflow_log("Selected the local vector store", component="ROUTER")
         return RETRIEVE
             
 

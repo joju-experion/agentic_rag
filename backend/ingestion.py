@@ -29,10 +29,10 @@ def initialize_vectorstore() -> Chroma:
     )
 
     if vectorstore.get(limit=1, include=[]).get("ids"):
-        ingestion_log("---INGESTION: EXISTING VECTOR INDEX FOUND, SKIPPING---")
+        ingestion_log("Existing vector index found; skipping ingestion")
         return vectorstore
 
-    ingestion_log("---INGESTION: BUILDING VECTOR INDEX---")
+    ingestion_log("Building vector index")
     docs = [WebBaseLoader(url).load() for url in URLS]
     docs_list = [document for source_docs in docs for document in source_docs]
 
@@ -42,7 +42,7 @@ def initialize_vectorstore() -> Chroma:
     )
     doc_splits = text_splitter.split_documents(docs_list)
     vectorstore.add_documents(doc_splits)
-    ingestion_log(f"---INGESTION: STORED {len(doc_splits)} DOCUMENT CHUNKS---")
+    ingestion_log(f"Stored {len(doc_splits)} document chunks")
 
     return vectorstore
 

@@ -1,5 +1,6 @@
 import html
 import os
+from datetime import datetime
 
 import requests
 import streamlit as st
@@ -15,21 +16,24 @@ st.markdown(
     """
     <style>
     .log-terminal {
-        max-height: 220px;
+        max-height: 320px;
         overflow-y: auto;
         padding: 0.75rem;
         border: 1px solid #30363d;
         border-radius: 0.5rem;
         background: #0d1117;
-        color: #39ff14;
         font-family: Consolas, "Courier New", monospace;
         font-size: 0.8rem;
+        line-height: 1.5;
     }
-    .log-terminal pre {
-        margin: 0;
+    .log-line {
         white-space: pre-wrap;
         overflow-wrap: anywhere;
     }
+    .log-info { color: #7ee787; }
+    .log-warn { color: #d29922; }
+    .log-error { color: #f85149; }
+    .log-query { color: #58a6ff; font-weight: 600; }
     </style>
     """,
     unsafe_allow_html=True,
@@ -62,23 +66,49 @@ if prompt := st.chat_input("Ask a question"):
                 result = response.json()
                 answer = result["response"]
                 request_logs = result.get("logs", [])
-                st.session_state.logs.append(f"$ {prompt}")
+                timestamp = datetime.now().astimezone().strftime("%H:%M:%S")
+                st.session_state.logs.append(
+                    f"{timestamp} | QUERY | USER       | {prompt}"
+                )
                 st.session_state.logs.extend(str(line) for line in request_logs)
                 st.session_state.logs.append("")
             except (requests.exceptions.RequestException, KeyError, ValueError):
                 answer = "I could not reach the backend. Please make sure the API is running."
-                st.session_state.logs.extend([f"$ {prompt}", f"ERROR: {answer}", ""])
+                timestamp = datetime.now().astimezone().strftime("%H:%M:%S")
+                st.session_state.logs.extend(
+                    [
+                        f"{timestamp} | QUERY | USER       | {prompt}",
+                        f"{timestamp} | ERROR | FRONTEND   | {answer}",
+                        "",
+                    ]
+                )
 
         st.markdown(answer)
 
     st.session_state.messages.append({"role": "assistant", "content": answer})
 
 with st.expander("Workflow terminal", expanded=False):
-    terminal_output = "\n".join(st.session_state.logs[-200:])
-    if not terminal_output:
-        terminal_output = "Run a search to see workflow logs."
+    terminal_lines = st.session_state.logs[-200:]
+    if not terminal_lines:
+        terminal_lines = ["Run a search to see workflow logs."]
+
+    rendered_lines = []
+    for line in terminal_lines:
+        if "| ERROR |" in line:
+            css_class = "log-error"
+        elif "| WARN " in line:
+            css_class = "log-warn"
+        elif "| QUERY |" in line:
+            css_class = "log-query"
+        else:
+            css_class = "log-info"
+
+        content = html.escape(line) if line else "&nbsp;"
+        rendered_lines.append(
+            f'<div class="log-line {css_class}">{content}</div>'
+        )
 
     st.markdown(
-        f'<div class="log-terminal"><pre>{html.escape(terminal_output)}</pre></div>',
+        f'<div class="log-terminal">{"".join(rendered_lines)}</div>',
         unsafe_allow_html=True,
     )

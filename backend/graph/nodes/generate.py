@@ -6,7 +6,7 @@ from backend.logging_utils import workflow_log
 
 
 def generate(state: GraphState) -> Dict[str, Any]:
-    workflow_log("---GENERATE---")
+    workflow_log("Generating an answer", component="GENERATION")
     question = state["question"]
     documents = state["documents"]
 
