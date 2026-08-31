@@ -9,6 +9,11 @@ _request_logs: ContextVar[list[str] | None] = ContextVar(
 )
 
 
+def ingestion_log(message: str) -> None:
+    """Write an ingestion message to the backend terminal."""
+    print(message, flush=True)
+
+
 def workflow_log(message: str) -> None:
     """Write a workflow message to the console and the current request log."""
     print(message)

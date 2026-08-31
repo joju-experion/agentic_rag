@@ -1,36 +1,50 @@
-from dotenv import load_dotenv
-load_dotenv()
+from pathlib import Path
 
-from langchain_openai import OpenAIEmbeddings
-from langchain_community.document_loaders import WebBaseLoader
+from dotenv import load_dotenv
 from langchain_chroma import Chroma
+from langchain_community.document_loaders import WebBaseLoader
+from langchain_openai import OpenAIEmbeddings
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 
+from backend.logging_utils import ingestion_log
 
-urls = [
+load_dotenv()
+
+
+COLLECTION_NAME = "rag-chroma"
+PERSIST_DIRECTORY = Path(__file__).resolve().parents[1] / ".chroma"
+
+URLS = [
     "https://lilianweng.github.io/posts/2023-06-23-agent/",
     "https://lilianweng.github.io/posts/2023-03-15-prompt-engineering/",
 ]
 
-docs = [WebBaseLoader(url).load() for url in urls]
-docs_list = [item for sublist in docs for item in sublist]
 
-text_splitter = RecursiveCharacterTextSplitter.from_tiktoken_encoder(
-    chunk_size=250, chunk_overlap=0
-)
-doc_splits = text_splitter.split_documents(docs_list)
+def initialize_vectorstore() -> Chroma:
+    """Create the vector index only when the persisted collection is empty."""
+    vectorstore = Chroma(
+        collection_name=COLLECTION_NAME,
+        persist_directory=str(PERSIST_DIRECTORY),
+        embedding_function=OpenAIEmbeddings(),
+    )
 
-# Only need to run it once at the beginning for indexing
-# no need to index every time we run the program, we only need to load everything from the disc 
-# vectorstore = Chroma.from_documents(
-#     documents=doc_splits,
-#     collection_name="rag-chroma",
-#     embedding=OpenAIEmbeddings(),
-#     persist_directory="./.chroma",
-# )
+    if vectorstore.get(limit=1, include=[]).get("ids"):
+        ingestion_log("---INGESTION: EXISTING VECTOR INDEX FOUND, SKIPPING---")
+        return vectorstore
 
-retriever = Chroma(
-    collection_name="rag-chroma",
-    persist_directory="./.chroma",
-    embedding_function=OpenAIEmbeddings(),
-).as_retriever()
+    ingestion_log("---INGESTION: BUILDING VECTOR INDEX---")
+    docs = [WebBaseLoader(url).load() for url in URLS]
+    docs_list = [document for source_docs in docs for document in source_docs]
+
+    text_splitter = RecursiveCharacterTextSplitter.from_tiktoken_encoder(
+        chunk_size=250,
+        chunk_overlap=0,
+    )
+    doc_splits = text_splitter.split_documents(docs_list)
+    vectorstore.add_documents(doc_splits)
+    ingestion_log(f"---INGESTION: STORED {len(doc_splits)} DOCUMENT CHUNKS---")
+
+    return vectorstore
+
+
+retriever = initialize_vectorstore().as_retriever()
