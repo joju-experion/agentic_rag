@@ -2,6 +2,7 @@ from typing import Any, Dict
 
 from backend.graph.chains.retrieval_grader import retrieval_grader
 from backend.graph.state import GraphState
+from backend.logging_utils import workflow_log
 
 
 def grade_documents(state: GraphState) -> Dict[str, Any]:
@@ -16,7 +17,7 @@ def grade_documents(state: GraphState) -> Dict[str, Any]:
         state (dict): Filtered out irrelevant documents and updated web_search state
     """
 
-    print("---CHECK DOCUMENT RELEVANCE TO QUESTION---")
+    workflow_log("---CHECK DOCUMENT RELEVANCE TO QUESTION---")
     question = state["question"]
     documents = state["documents"]
 
@@ -28,10 +29,10 @@ def grade_documents(state: GraphState) -> Dict[str, Any]:
         )
         grade = score.binary_score
         if grade.lower() == "yes":
-            print("---GRADE: DOCUMENT RELEVANT---")
+            workflow_log("---GRADE: DOCUMENT RELEVANT---")
             filtered_docs.append(d)
         else:
-            print("---GRADE: DOCUMENT NOT RELEVANT---")
+            workflow_log("---GRADE: DOCUMENT NOT RELEVANT---")
             web_search = True
             continue
     return {"documents": filtered_docs, "question": question, "web_search": web_search}

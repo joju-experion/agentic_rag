@@ -125,6 +125,15 @@ Start the Agentic Rag flow
   uv run uvicorn backend.main:app --reload
 ```
 
+In a second terminal, start the Streamlit frontend:
+
+```bash
+  uv run streamlit run frontend/app.py
+```
+
+The frontend connects to `http://127.0.0.1:8000` by default. Set the
+`BACKEND_URL` environment variable when the backend is deployed elsewhere.
+
 ## Running Tests
 
 To run tests, run the following command
@@ -144,3 +153,9 @@ By [Sophia Young](https://x.com/sophiamyang) from Mistral & [Lance Martin](https
 [![portfolio](https://img.shields.io/badge/my_portfolio-000?style=for-the-badge&logo=ko-fi&logoColor=white)](https://www.udemy.com/course/langgraph/?referralCode=FEA50E8CBA24ECD48212)
 [![linkedin](https://img.shields.io/badge/linkedin-0A66C2?style=for-the-badge&logo=linkedin&logoColor=white)](https://www.linkedin.com/in/eden-marco/)
 [![Twitter Follow](https://img.shields.io/twitter/follow/EdenEmarco177?style=social)](https://twitter.com/EdenEmarco177)
+
+
+
+
+
+uv run uvicorn backend.main:app --reload

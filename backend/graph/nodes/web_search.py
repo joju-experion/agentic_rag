@@ -5,12 +5,13 @@ from typing import Any, Dict
 from langchain_core.documents import Document
 from langchain_tavily import TavilySearch
 from backend.graph.state import GraphState
+from backend.logging_utils import workflow_log
 
 web_search_tool = TavilySearch(max_results=3)
 
 
 def web_search(state: GraphState) -> Dict[str, Any]:
-    print("---WEB SEARCH---")
+    workflow_log("---WEB SEARCH---")
     question = state["question"]
     if "documents" in state: # if the route to web search in first time then give error
         documents = state["documents"]

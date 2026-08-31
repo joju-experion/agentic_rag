@@ -5,6 +5,7 @@ from pydantic import BaseModel
 load_dotenv()
 
 from backend.graph.graph import app as rag_app
+from backend.logging_utils import capture_workflow_logs
 
 
 app = FastAPI(title="Agentic RAG API")
@@ -21,5 +22,7 @@ def home():
 
 @app.post("/chat")
 def chat(request: ChatRequest):
-    result = rag_app.invoke({"question": request.message})
-    return {"response": result["generation"]}
+    with capture_workflow_logs() as logs:
+        result = rag_app.invoke({"question": request.message})
+
+    return {"response": result["generation"], "logs": logs}

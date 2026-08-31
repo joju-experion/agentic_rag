@@ -7,24 +7,25 @@ from backend.graph.state import GraphState
 from backend.graph.chains.hallucination_grader import hallucination_grader
 from backend.graph.chains.answer_grader import answer_grader
 from backend.graph.chains.router import question_router, RouteQuery
+from backend.logging_utils import workflow_log
 
 load_dotenv()
 
 
 def decide_to_generate(state):
-    print("---ASSESS GRADED DOCUMENTS---")
+    workflow_log("---ASSESS GRADED DOCUMENTS---")
 
     if state["web_search"]:
-        print(
+        workflow_log(
             "---DECISION: NOT ALL DOCUMENTS ARE NOT RELEVANT TO QUESTION, INCLUDE WEB SEARCH---"
         )
         return WEBSEARCH
     else:
-        print("---DECISION: GENERATE---")
+        workflow_log("---DECISION: GENERATE---")
         return GENERATE
 
 def grade_generation_grounded_in_documents_and_question(state: GraphState) -> str:
-    print("---CHECK HALLUCINATIONS---")
+    workflow_log("---CHECK HALLUCINATIONS---")
     question = state["question"]
     documents = state["documents"]
     generation = state["generation"]
@@ -32,12 +33,12 @@ def grade_generation_grounded_in_documents_and_question(state: GraphState) -> st
     score = hallucination_grader.invoke({"documents": documents, "generation": generation})
     
     if hallucination_grade := score.binary_score:
-        print("---DECISION: GENERATION IS GROUNDED IN DOCUMENTS---")
-        print("---GRADE GENERATION vs QUESTION---")
+        workflow_log("---DECISION: GENERATION IS GROUNDED IN DOCUMENTS---")
+        workflow_log("---GRADE GENERATION vs QUESTION---")
         
         score = answer_grader.invoke({"question": question, "generation": generation})
         if answer_grade := score.binary_score:
-            print("---DECISION: GENERATION ADDRESSES QUESTION---")
+            workflow_log("---DECISION: GENERATION ADDRESSES QUESTION---")
             return "useful"
         else:
             return "not useful"
@@ -45,14 +46,14 @@ def grade_generation_grounded_in_documents_and_question(state: GraphState) -> st
         return "not supported"
     
 def route_question(state: GraphState) -> str:
-    print("---ROUTE QUESTION---")
+    workflow_log("---ROUTE QUESTION---")
     question = state["question"]
     source: RouteQuery = question_router.invoke({"question": question})
     if source.datasource == WEBSEARCH:
-        print("---ROUTE QUESTION TO WEB SEARCH---")
+        workflow_log("---ROUTE QUESTION TO WEB SEARCH---")
         return WEBSEARCH
     elif source.datasource == "vectorstore":
-        print("---ROUTE QUESTION TO RAG---")
+        workflow_log("---ROUTE QUESTION TO RAG---")
         return RETRIEVE
             
 
