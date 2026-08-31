@@ -4,7 +4,7 @@ load_dotenv()
 from typing import Any, Dict
 from langchain_core.documents import Document
 from langchain_tavily import TavilySearch
-from graph.state import GraphState
+from backend.graph.state import GraphState
 
 web_search_tool = TavilySearch(max_results=3)
 
